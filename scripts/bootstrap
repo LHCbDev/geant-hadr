@@ -3,6 +3,7 @@
 import subprocess
 import string
 import os
+import socket
 
 
 def format_filename(s):
@@ -21,9 +22,52 @@ an invalid filename.
     filename = filename.replace(' ', '_')  # I don't like spaces in filenames.
     return filename.lstrip('-_')
 
-# --nightly lhcb-gauss-dev
-# x86_64-slc6-gcc48-opt
+
+def get_run_cfg(cfg, default):
+    result = dict(default)
+    result.update(cfg)
+    result['slot'] = '--nightly %s ' % result['slot'] if result['slot'] else ''
+    return result
+
+
+def get_collect_cfg(dirname, cfg, default):
+    result = dict(default)
+    result.update(cfg)
+    result['folder'] = dirname
+    result['version'] = get_version(cfg)
+    result['date'] = '2016-02-14 10:00'
+    result['start'] = '2016-02-14 10:00'
+    result['end'] = '2016-02-14 10:00'
+    result['host'] = socket.gethostname()
+
+    return result
+
+def get_version(cfg):
+    result = ''
+    if cfg['version'] == 'HEAD':
+        return cfg['slot']+'.1'
+    return cfg['version']
+
+def get_dirname(cfg, default):
+    config = dict(default)
+    config.update(cfg)
+
+    return format_filename("{slot}_{cmtconfig}_{version}".format(**config))
+ 
+
 cmd = 'lb-run {slot}  -c {cmtconfig}  Geant4 {version} run_hadronic_tests.py'
+collect = ('~/Dev/LHCbPR2HD/collectRunResults.py  -r {folder} --app-name GEANT'
+           ' --app-version {version}'
+           ' --app-version-datetime "{date}"'
+           ' --opt-name "GEANT_RUNHADRONIC"'
+           ' --opt-content "runhadronic.py"'
+           ' --opt-standalone'
+           ' --setup-name "default"'
+           ' --setup-content " --no-user-area"'
+           ' -s "{start}" -e "{end}"'
+           ' -p {host}'
+           ' -c {cmtconfig}'
+           ' -l GeantStandaloneHandler')
 
 default = {
     'slot': '',
@@ -33,9 +77,9 @@ default = {
 
 configs = [
     {
-        'slot': '--nightly lhcb-gauss-dev',
+        'slot': 'lhcb-gauss-dev',
         'cmtconfig': 'x86_64-slc6-gcc48-opt',
-                'version': 'HEAD'
+        'version': 'HEAD'
     },
     {
         'cmtconfig': 'x86_64-slc6-gcc48-opt',
@@ -48,12 +92,11 @@ configs = [
 ]
 
 for cfg in configs:
-    real_cfg = dict(default)  # .update(default)
-    real_cfg.update(cfg)
-    dirname = format_filename(
-        real_cfg['slot'] + '_' + real_cfg['cmtconfig'] + '_' + real_cfg['version'])
+    real_cfg = get_run_cfg(cfg, default)
+    dirname = get_dirname(cfg, default)
     exe = cmd.format(**real_cfg)
     if not os.path.exists(dirname):
         os.mkdir(dirname)
-    # print('cd %s; %s' % (dirname,exe))
-    subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
+
+    print(collect.format(**get_collect_cfg(dirname, cfg, default)))
+    # subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
