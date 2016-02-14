@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+import subprocess
+import string
+import os
+
+
+def format_filename(s):
+    """Take a string and return a valid filename constructed from the string.
+Uses a whitelist approach: any characters not present in valid_chars are
+removed. Also spaces are replaced with underscores.
+
+Note: this method may produce invalid filenames such as ``, `.` or `..`
+When I use this method I prepend a date string like '2009_01_15_19_46_32_'
+and append a file extension like '.txt', so I avoid the potential of using
+an invalid filename.
+
+"""
+    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    filename = ''.join(c for c in s if c in valid_chars)
+    filename = filename.replace(' ', '_')  # I don't like spaces in filenames.
+    return filename.lstrip('-_')
+
+# --nightly lhcb-gauss-dev
+# x86_64-slc6-gcc48-opt
+cmd = 'lb-run {slot}  -c {cmtconfig}  Geant4 {version} run_hadronic_tests.py'
+
+default = {
+    'slot': '',
+    'cmtconfig': 'x86_64-slc6-gcc49-opt',
+    'version': 'HEAD'
+}
+
+configs = [
+    {
+        'slot': '--nightly lhcb-gauss-dev',
+        'cmtconfig': 'x86_64-slc6-gcc48-opt',
+                'version': 'HEAD'
+    },
+    {
+        'cmtconfig': 'x86_64-slc6-gcc48-opt',
+        'version': 'v96r4p2'
+    },
+    {
+        'cmtconfig': 'x86_64-slc6-gcc49-opt',
+        'version': 'v96r4p2'
+    }
+]
+
+for cfg in configs:
+    real_cfg = dict(default)  # .update(default)
+    real_cfg.update(cfg)
+    dirname = format_filename(
+        real_cfg['slot'] + '_' + real_cfg['cmtconfig'] + '_' + real_cfg['version'])
+    exe = cmd.format(**real_cfg)
+    if not os.path.exists(dirname):
+        os.mkdir(dirname)
+    # print('cd %s; %s' % (dirname,exe))
+    subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
