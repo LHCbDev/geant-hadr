@@ -99,4 +99,4 @@ for cfg in configs:
         os.mkdir(dirname)
 
     print(collect.format(**get_collect_cfg(dirname, cfg, default)))
-    # subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
+    #subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
