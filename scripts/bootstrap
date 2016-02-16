@@ -79,7 +79,8 @@ configs = [
     {
         'slot': 'lhcb-gauss-dev',
         'cmtconfig': 'x86_64-slc6-gcc48-opt',
-        'version': 'HEAD'
+        'version': 'HEAD',
+
     },
     {
         'cmtconfig': 'x86_64-slc6-gcc48-opt',
@@ -91,6 +92,8 @@ configs = [
     }
 ]
 
+collect_scripts = []
+
 for cfg in configs:
     real_cfg = get_run_cfg(cfg, default)
     dirname = get_dirname(cfg, default)
@@ -98,5 +101,7 @@ for cfg in configs:
     if not os.path.exists(dirname):
         os.mkdir(dirname)
 
-    print(collect.format(**get_collect_cfg(dirname, cfg, default)))
-    #subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
+    collect_scripts.append(collect.format(**get_collect_cfg(dirname, cfg, default)))
+    subprocess.call("cd %s && %s" % (dirname, exe), shell=True)
+
+print('\n'.join(collect_scripts))
